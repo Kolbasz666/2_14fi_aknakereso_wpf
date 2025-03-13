@@ -20,13 +20,61 @@ namespace _2_14fi_aknakereso_wpf
     /// </summary>
     public partial class MainWindow : Window
     {
-        int size = 16;
-        int bomb = 160;
+        int size = 9;
+        int bomb = 10;
+        int[,] matrix;
+        Label[,] labels;
+
+        //ezek az elvégezhető műveletek, listában, mindkét koordinátára
+        readonly List<int[]> operations = new List<int[]>() {
+                            new int[2] { -1, -1 }, new int[2] { -1, 0 }, new int[2] { -1, 1 },
+                            new int[2] { 0, -1 },                        new int[2] { 0, 1 },
+                            new int[2] { 1, -1 },  new int[2] { 1, 0 },  new int[2] { 1, 1 }};
         public MainWindow()
         {
+            matrix = new int[size, size];
+            labels = new Label[size, size];
             InitializeComponent();
             Start();
         }
+        //ellenőrzi milyen lépéseket tudunk végrehajtani
+        bool[] stepCheck(int row, int col)
+        {
+            //a nyolc érték reprezentálja a nyolc elvégezhető műveletet egy elemből: fel-le, jobbra-balra, átlók
+            bool[] temp = new bool[8] { true, true, true, true, true, true, true, true };
+
+            //nulladik sor: szélső érték
+            if (row == 0)
+            {
+                temp[0] = false;
+                temp[1] = false;
+                temp[2] = false;
+            }
+            //utolsó sor: szélső érték 
+            else if (row == size - 1)
+            {
+                temp[5] = false;
+                temp[6] = false;
+                temp[7] = false;
+            }
+            //nulladik oszlop: szélső érték
+            if (col == 0)
+            {
+                temp[0] = false;
+                temp[3] = false;
+                temp[5] = false;
+            }
+            //utolsó oszlop: szélső érték
+            else if (col == size - 1)
+            {
+                temp[2] = false;
+                temp[4] = false;
+                temp[7] = false;
+            }
+
+            return temp;
+        }
+
         void Start()
         {
             for (int i = 0; i < size; i++)
@@ -41,14 +89,14 @@ namespace _2_14fi_aknakereso_wpf
             {
                 for (int col = 0; col < size; col++)
                 {
-                    Label oneLabel = new Label();
-                    oneLabel.MouseLeftButtonUp += LeftClickEvent;
-                    oneLabel.MouseRightButtonUp += RightClickEvent;
-                    sajt.Children.Add(oneLabel);
+                    labels[row, col] = new Label();
+                    labels[row, col].MouseLeftButtonUp += LeftClickEvent;
+                    labels[row, col].MouseRightButtonUp += RightClickEvent;
+                    sajt.Children.Add(labels[row, col]);
                     //azért tag, mert ez nem jelenik meg a UI-on
-                    oneLabel.Tag = "";
-                    Grid.SetRow(oneLabel, row);
-                    Grid.SetColumn(oneLabel, col);
+                    labels[row, col].Tag = "";
+                    Grid.SetRow(labels[row, col], row);
+                    Grid.SetColumn(labels[row, col], col);
                 }
             }
             int count = 0;
@@ -58,7 +106,6 @@ namespace _2_14fi_aknakereso_wpf
                 int col = r.Next(0, size);
                 //lekérjük a grid elemeit egy collection-be, ezt a típust kiírja amikor rávisszük az egeret a . children-re
                 UIElementCollection labels = sajt.Children;
-                //ugyanaz mint alatta kommentben, csak másként
 
                 labels.Cast<Label>().ToList().ForEach(item =>
                 {
@@ -67,20 +114,28 @@ namespace _2_14fi_aknakereso_wpf
                     {
                         item.Content = "Akna";
                         item.Tag = "Akna";
+                        matrix[row, col] = -1;
                         count++;
+
+                        bool[] temp = stepCheck(row, col);
+
+                        for (int i = 0; i < 8; i++)
+                        {
+                            if (temp[i])
+                            {
+                                int teeemp = matrix[row + operations[i][0], col + operations[i][1]];
+                                if (teeemp >= 0)
+                                {
+                                    matrix[row + operations[i][0], col + operations[i][1]]++;
+                                }
+                            }
+                        }
                     }
                 });
-
-                /*foreach (UIElement item in labels)
-                {
-                    Label oneLabel = item as Label;
-                    if (Grid.GetColumn(oneLabel) == col && Grid.GetRow(oneLabel) == row && oneLabel.Content != "Akna") {
-                        oneLabel.Content = "Akna";
-                        count++;
-                    }
-                }*/
             }
         }
+
+
 
         void LeftClickEvent(object s, EventArgs e)
         {
@@ -108,56 +163,26 @@ namespace _2_14fi_aknakereso_wpf
             }
 
             originalLabel.Background = new SolidColorBrush(Colors.LightGreen);
-
-            UIElementCollection labels = sajt.Children;
-
-            labels.Cast<Label>().ToList().ForEach(item =>
+            if (matrix[row, col] > 0)
             {
-                if (row + 1 < size)
+                originalLabel.Content = matrix[row, col];
+                return;
+            }
+
+            bool[] temp = stepCheck(row, col);
+
+            for (int i = 0; i < 8; i++)
+            {
+                if (temp[i])
                 {
-                    if (Grid.GetColumn(item) == col && Grid.GetRow(item) == row + 1 && item.Tag != "Akna")
+                    int tempRow = row + operations[i][0];
+                    int tempCol = col + operations[i][1];
+                    if ((labels[tempRow, tempCol].Background as SolidColorBrush).Color != Colors.LightGreen)
                     {
-                        if ((item.Background as SolidColorBrush).Color != Colors.LightGreen)
-                        {
-                            SearchLabels(item);
-                        }
+                        SearchLabels(labels[tempRow, tempCol]);
                     }
                 }
-                if (row - 1 >= 0)
-                {
-                    if (Grid.GetColumn(item) == col && Grid.GetRow(item) == row - 1 && item.Tag != "Akna")
-                    {
-                        if ((item.Background as SolidColorBrush).Color != Colors.LightGreen)
-                        {
-                            SearchLabels(item);
-                        }
-                    }
-                }
-                if (col + 1 < size)
-                {
-                    if (Grid.GetColumn(item) == col + 1 && Grid.GetRow(item) == row && item.Tag != "Akna")
-                    {
-                        if ((item.Background as SolidColorBrush).Color != Colors.LightGreen)
-                        {
-                            SearchLabels(item);
-                        }
-                    }
-                }
-                if (col - 1 >= 0)
-                {
-                    if (Grid.GetColumn(item) == col - 1 && Grid.GetRow(item) == row && item.Tag != "Akna")
-                    {
-                        if ((item.Background as SolidColorBrush).Color != Colors.LightGreen)
-                        {
-                            SearchLabels(item);
-                        }
-                    }
-                }
-
-            });
-
-
-
+            }
         }
         void RightClickEvent(object s, EventArgs e)
         {
@@ -168,7 +193,7 @@ namespace _2_14fi_aknakereso_wpf
                 oneLabel.Background = new SolidColorBrush(Colors.White);
                 oneLabel.MouseLeftButtonUp += LeftClickEvent;
             }
-            else
+            else if ((oneLabel.Background as SolidColorBrush).Color != Colors.LightGreen)
             {
                 oneLabel.Background = new SolidColorBrush(Colors.LightBlue);
                 oneLabel.MouseLeftButtonUp -= LeftClickEvent;
