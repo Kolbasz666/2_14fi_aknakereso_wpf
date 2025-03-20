@@ -173,7 +173,7 @@ namespace _2_14fi_aknakereso_wpf
             
             
             
-            if ((string)originalLabel.Content == "╒")
+            if (originalLabel.Content?.ToString() == "╒")
             {
                 flagNum--;
                 originalLabel.Content = "";
